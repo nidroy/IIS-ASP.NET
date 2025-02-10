@@ -16,7 +16,7 @@
 	Type: http/https
 	IP address: выбрать IP адрес пк
 	Port: 80 (или выбранный порт)
-	Host name: пусто
+	Host name: пусто (или имя пк, если нужно использовать пк)
 
 	Настройка прав доступа:
 	Правой кнопкой по папке приложения → Properties
@@ -75,4 +75,7 @@ MIME type: application/soap+xml
 Укажите порт: 85
 Разрешить подключение.
 
+по IP
 http://192.168.1.100:85/UserService.asmx
+по имени ПК
+http://serverpc:85/UserService.asmx

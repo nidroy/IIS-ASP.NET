@@ -6,6 +6,7 @@ using System.Linq;
 using System.Web;
 using System.Web.Services;
 using System.IO;
+using System.Xml.Serialization;
 
 namespace UserWebApp
 {
@@ -95,26 +96,88 @@ namespace UserWebApp
                 throw new Exception("Service error", ex);
             }
         }
+
+        [WebMethod]
+        public List<string> GetLogs()
+        {
+            try
+            {
+                var logs = _logger.GetLogs();
+                _logger.Log("Successfully retrieved logs");
+                return logs;
+            }
+            catch (Exception ex)
+            {
+                _logger.Log($"GetLogs error: {ex.Message}");
+                return new List<string> { "Error retrieving logs" };
+            }
+        }
+
+        [WebMethod]
+        public ResultObject TestReturn()
+        {
+            return new ResultObject
+            {
+                Retcode = 0,
+                Retmess = "Successfully"
+            };
+        }
     }
 
     public class Logger
     {
         private readonly string _logPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
+        private readonly object _lock = new object();
 
         public void Log(string message)
         {
-            try
+            lock (_lock)
             {
-                Directory.CreateDirectory(_logPath);
-                string fileName = $"Log_{DateTime.Now:yyyy-MM-dd}.txt";
-                string fullPath = Path.Combine(_logPath, fileName);
+                try
+                {
+                    Directory.CreateDirectory(_logPath);
+                    string fileName = $"Log_{DateTime.Now:yyyy-MM-dd}.txt";
+                    string fullPath = Path.Combine(_logPath, fileName);
 
-                File.AppendAllText(fullPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}{Environment.NewLine}");
-            }
-            catch (Exception ex)
-            {
-                // Обработка ошибок логирования
+                    File.AppendAllText(fullPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}{Environment.NewLine}");
+                }
+                catch (Exception ex)
+                {
+                    // Обработка ошибок логирования
+                }
             }
         }
+
+        public List<string> GetLogs(int maxLines = 100)
+        {
+            lock (_lock)
+            {
+                try
+                {
+                    string fileName = $"Log_{DateTime.Now:yyyy-MM-dd}.txt";
+                    string fullPath = Path.Combine(_logPath, fileName);
+
+                    if (!File.Exists(fullPath))
+                        return new List<string>();
+
+                    var lines = File.ReadAllLines(fullPath).Reverse().Take(maxLines).Reverse().ToList();
+                    return lines.Count > 0 ? lines : new List<string>();
+                }
+                catch
+                {
+                    return new List<string> { "Error reading log file" };
+                }
+            }
+        }
+    }
+
+    [XmlRoot(ElementName = "Result")]
+    public class ResultObject
+    {
+        [XmlElement("RETCODE")]
+        public int Retcode { get; set; }
+
+        [XmlElement("RETMESS")]
+        public string Retmess { get; set; }
     }
 }
